@@ -319,7 +319,7 @@ def main():
     print(rrt.c_best)
 
     iterator = 1
-    while iterator < 50:
+    while iterator < 30:
         iterator += 1
         path = rrt.planning()
         rrt.draw_temp_static(path)

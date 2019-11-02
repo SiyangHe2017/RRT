@@ -44,7 +44,7 @@ class RRT(object):
 
     def random_node(self):
         """
-        产生随机节点
+        Creating random nodes
         :return:
         """
         node_x = random.uniform(self.min_rand, self.max_rand)
@@ -77,6 +77,7 @@ class RRT(object):
 
     def get_distance_to_initial(self, temp_node):
         """
+        Calculating the euclidean distance from the current node to its initial node
         :param temp_node: current node
         :return: distance: the distance to the origin from the current node along its father
         """
@@ -92,13 +93,14 @@ class RRT(object):
 
     def choose_parent(self, new_node):
         """
+        For RRT*
+        Choosing a parent for the new node which makes the new node smallest cost to the root
         :param new_node:
         :return: minimu_index: -1 if there is no more nearby node
                                 otherwise index of the node if there are nearby node
         """
         new_node_parent_node = self.nodeList[new_node.parent]
         minimum_distance = math.sqrt((new_node_parent_node.x-new_node.x)**2+(new_node_parent_node.y-new_node.y)**2)
-        # print(minimum_distance)
         minimum_index = -1  # -1 stands for there is no node nearer than this
 
         for i in range(len(self.nodeList)):
@@ -110,6 +112,9 @@ class RRT(object):
         return minimum_index
 
     def test_choose_parent(self, new_node):
+        """
+        This is used for testing the function choose_parent()
+        """
         new_node_parent = self.choose_parent(new_node)
         if new_node_parent > -1:
             new_node_parent_node = self.nodeList[new_node_parent]
@@ -118,9 +123,9 @@ class RRT(object):
 
     def rewire_rrt(self, new_node):
         """
-        rewire the rrt path according to the rule of rrt star
-        :param new_node:
-        :return:
+        rewire the rrt path according to the rule of RRT*
+        :param new_node: new_node
+        :return: None
         """
         new_node_index = self.nodeList.index(new_node)
         new_node_distance_o = self.get_distance_to_initial(new_node)
@@ -289,8 +294,6 @@ def main():
 
     # Set Initial parameters
     rrt = RRT(start=[0, 0], goal=[8, 9], rand_area=[-2, 10], obstacle_list=obstacle_list)
-    # path = rrt.planning()
-
     '''
     for i in range(1, len(path)):
         print(path[i])
