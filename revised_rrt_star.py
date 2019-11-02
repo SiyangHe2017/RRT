@@ -14,7 +14,7 @@ class Node(object):
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.parent = None #!!! node.parent is just an index
+        self.parent = None  # !!! node.parent is just an index
 
 
 class RRT(object):
@@ -41,7 +41,6 @@ class RRT(object):
         self.maxIter = 500  # what it is this?
         self.obstacleList = obstacle_list
         self.nodeList = [self.start]
-
 
     def random_node(self):
         """
@@ -77,6 +76,10 @@ class RRT(object):
         return a
 
     def get_distance_to_initial(self, temp_node):
+        """
+        :param temp_node: current node
+        :return: distance: the distance to the origin from the current node along its father
+        """
         distance = 0
         temp_node_index = self.nodeList.index(temp_node)
         while self.nodeList[temp_node_index].parent is not None:
@@ -93,13 +96,6 @@ class RRT(object):
         :return: minimu_index: -1 if there is no more nearby node
                                 otherwise index of the node if there are nearby node
         """
-        '''
-        nearer_node_list = []
-        for i in range(len(self.nodeList)):
-            temp_node = self.nodeList[i]
-            if((temp_node.x-new_node.x) ** 2 + (temp_node.y-new_node.y) ** 2) < (1.5 * self.expandDis) ** 2:
-                nearer_node_list.append(temp_node)
-        '''
         new_node_parent_node = self.nodeList[new_node.parent]
         minimum_distance = math.sqrt((new_node_parent_node.x-new_node.x)**2+(new_node_parent_node.y-new_node.y)**2)
         # print(minimum_distance)
@@ -114,7 +110,6 @@ class RRT(object):
         return minimum_index
 
     def test_choose_parent(self, new_node):
-        distance = -1
         new_node_parent = self.choose_parent(new_node)
         if new_node_parent > -1:
             new_node_parent_node = self.nodeList[new_node_parent]
@@ -122,6 +117,11 @@ class RRT(object):
             print(distance, new_node_parent_node.x, new_node_parent_node.y, new_node.x, new_node.y)
 
     def rewire_rrt(self, new_node):
+        """
+        rewire the rrt path according to the rule of rrt star
+        :param new_node:
+        :return:
+        """
         new_node_index = self.nodeList.index(new_node)
         new_node_distance_o = self.get_distance_to_initial(new_node)
         nearer_node_list = []
@@ -137,10 +137,6 @@ class RRT(object):
             new_node_distance_temp_node = math.sqrt((new_node.x - temp_node.x)**2 + (new_node.y - temp_node.y)**2)
             if temp_node_distance_o > new_node_distance_o + new_node_distance_temp_node:
                 temp_node.parent = new_node_index
-                '''
-                # this is used for testing rewire()
-                print("success", temp_node.parent)
-                '''
         return
 
     def planning(self):
@@ -175,36 +171,18 @@ class RRT(object):
             if not self.collision_check(new_node, self.obstacleList):
                 continue
 
-            '''
-            # This is used for test choose_parent()
-            # self.test_choose_parent(new_node)
-            '''
-
             if self.choose_parent(new_node)>-1:
                 new_node.parent = self.choose_parent(new_node)
 
             self.nodeList.append(new_node)
 
-            '''
-            # this is used to test rewire_rrt()
-            for i in range(len(self.nodeList)):
-                print(self.nodeList[i].parent, end=',')
-            print()
-            '''
-
             self.rewire_rrt(new_node)
 
-            '''
-            # this is used to test rewire_rrt()
-            for i in range(len(self.nodeList)):
-                print(self.nodeList[i].parent, end=',')
-            print()
-            '''
             # check goal
             dx = new_node.x - self.end.x
             dy = new_node.y - self.end.y
             d = math.sqrt(dx * dx + dy * dy)
-            if d <= self.expandDis:
+            if d <= self.expandDis * 0.5:
                 print("Goal!!")
                 break
 
@@ -219,7 +197,7 @@ class RRT(object):
             last_index = node.parent
         path.append([self.start.x, self.start.y])
 
-        return path  # why path is inverse?
+        return path
 
     def draw_graph(self, rnd=None):
         """
@@ -245,6 +223,32 @@ class RRT(object):
         plt.grid(True)
         plt.gca().set_aspect("equal")
         plt.pause(0.01)
+
+    def draw_temp_static(self, path):
+        """
+        画出静态图像
+        :return:
+        """
+        plt.clf()  # 清除上次画的图
+
+        for node in self.nodeList:
+            if node.parent is not None:
+                plt.plot([node.x, self.nodeList[node.parent].x], [
+                    node.y, self.nodeList[node.parent].y], "-g")
+
+        for (ox, oy, size) in self.obstacleList:
+            # plt.plot(ox, oy, "sk", ms=10*size)
+            temple_circle = plt.Circle((ox, oy), size, color='black')
+            plt.gcf().gca().add_artist(temple_circle)
+
+        plt.plot(self.start.x, self.start.y, "^r")
+        plt.plot(self.end.x, self.end.y, "^b")
+        plt.axis([self.min_rand, self.max_rand, self.min_rand, self.max_rand])
+
+        plt.plot([data[0] for data in path], [data[1] for data in path], '-r')
+        plt.grid(True)
+        plt.gca().set_aspect("equal")
+        plt.pause(1)
 
     def draw_static(self, path):
         """
@@ -277,22 +281,28 @@ def main():
     print("start RRT path planning")
 
     obstacle_list = [
-        (2, 2, 1),
-        (8, 2, 1),
-        (2, 8, 1),
-        (6, 6, 1)]
+        #(2, 2, 1),
+        #(8, 2, 1),
+        #(2, 8, 1),
+        #(6, 6, 1)
+        ]
 
     # Set Initial parameters
     rrt = RRT(start=[0, 0], goal=[8, 9], rand_area=[-2, 10], obstacle_list=obstacle_list)
+    # path = rrt.planning()
+
+    '''
+    for i in range(1, len(path)):
+        print(path[i])
+    '''
     path = rrt.planning()
+    rrt.draw_temp_static(path)
 
-
-
-    '''
-    # used to check function get_distance_to_inital()
-    for i in range(len(rrt.nodeList)):
-        print(rrt.nodeList[i].x, rrt.nodeList[i].y, rrt.get_distance_to_initial(rrt.nodeList[i]))
-    '''
+    iterator = 1
+    while iterator < 10:
+        iterator += 1
+        path = rrt.planning()
+        rrt.draw_temp_static(path)
 
     # Draw final path
     if show_animation:

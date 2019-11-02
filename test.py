@@ -1,14 +1,4 @@
-import random
-class test():
-    def __init__(self):
-        self.list = []
+a = [1, 2, 3, 4, 5]
 
-    def hello(self):
-        self.list.append(2)
-
-a =test()
-a.hello()
-a.hello()
-print(a.list)
-for i in range(5):
-    print(random.uniform(0, 1))
+for i in range(len(a)-1):
+    print(i)
