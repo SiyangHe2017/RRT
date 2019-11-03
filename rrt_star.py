@@ -93,25 +93,41 @@ class RRT(object):
         :return: minimu_index: -1 if there is no more nearby node
                                 otherwise index of the node if there are nearby node
         """
-        '''
-        nearer_node_list = []
+        """
+            new_node_parent_node = self.nodeList[new_node.parent]
+            minimum_distance = math.sqrt((new_node_parent_node.x-new_node.x)**2+(new_node_parent_node.y-new_node.y)**2)
+            # print(minimum_distance)
+            minimum_index = -1  # -1 stands for there is no node nearer than this
+        
+            for i in range(len(self.nodeList)):
+                temp_node = self.nodeList[i]
+                temp_distance = math.sqrt((temp_node.x-new_node.x)**2+(temp_node.y-new_node.y)**2)
+                if temp_distance < minimum_distance:
+                    minimum_distance = temp_distance
+                    minimum_index = i
+            return minimum_index
+        """
+        nearer_node_index_list = []
         for i in range(len(self.nodeList)):
             temp_node = self.nodeList[i]
-            if((temp_node.x-new_node.x) ** 2 + (temp_node.y-new_node.y) ** 2) < (1.5 * self.expandDis) ** 2:
-                nearer_node_list.append(temp_node)
-        '''
+            if ((temp_node.x - new_node.x) ** 2 + (temp_node.y - new_node.y) ** 2) < (1.5 * self.expandDis) ** 2:
+                nearer_node_index_list.append(i)
         new_node_parent_node = self.nodeList[new_node.parent]
-        minimum_distance = math.sqrt((new_node_parent_node.x-new_node.x)**2+(new_node_parent_node.y-new_node.y)**2)
-        # print(minimum_distance)
+        minimum_distance = math.sqrt(
+            (new_node_parent_node.x - new_node.x) ** 2 + (new_node_parent_node.y - new_node.y) ** 2)
+        minimum_distance += self.get_distance_to_initial(new_node_parent_node)
         minimum_index = -1  # -1 stands for there is no node nearer than this
-
-        for i in range(len(self.nodeList)):
-            temp_node = self.nodeList[i]
-            temp_distance = math.sqrt((temp_node.x-new_node.x)**2+(temp_node.y-new_node.y)**2)
+        for i in range(len(nearer_node_index_list)):
+            temp_node_index = nearer_node_index_list[i]
+            temp_node = self.nodeList[temp_node_index]
+            temp_distance = math.sqrt((temp_node.x - new_node.x) ** 2 + (temp_node.y - new_node.y) ** 2)
+            temp_distance += self.get_distance_to_initial(temp_node)
             if temp_distance < minimum_distance:
+                print(temp_distance, minimum_distance)
                 minimum_distance = temp_distance
-                minimum_index = i
+                minimum_index = temp_node_index
         return minimum_index
+
 
     def test_choose_parent(self, new_node):
         distance = -1
@@ -181,6 +197,7 @@ class RRT(object):
             '''
 
             if self.choose_parent(new_node)>-1:
+                print("successs")
                 new_node.parent = self.choose_parent(new_node)
 
             self.nodeList.append(new_node)
@@ -244,7 +261,7 @@ class RRT(object):
         plt.axis([self.min_rand, self.max_rand, self.min_rand, self.max_rand])
         plt.grid(True)
         plt.gca().set_aspect("equal")
-        plt.pause(0.01)
+        plt.pause(1)
 
     def draw_static(self, path):
         """

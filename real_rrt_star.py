@@ -99,6 +99,26 @@ class RRT(object):
         :return: minimu_index: -1 if there is no more nearby node
                                 otherwise index of the node if there are nearby node
         """
+        nearer_node_index_list = []
+        for i in range(len(self.nodeList)):
+            temp_node = self.nodeList[i]
+            if ((temp_node.x - new_node.x) ** 2 + (temp_node.y - new_node.y) ** 2) < (1.5 * self.expandDis) ** 2:
+                nearer_node_index_list.append(i)
+        new_node_parent_node = self.nodeList[new_node.parent]
+        minimum_distance = math.sqrt((new_node_parent_node.x - new_node.x) ** 2 + (new_node_parent_node.y - new_node.y) ** 2)
+        minimum_distance += self.get_distance_to_initial(new_node_parent_node)
+        minimum_index = -1  # -1 stands for there is no node nearer than this
+        for i in range(len(nearer_node_index_list)):
+            temp_node_index = nearer_node_index_list[i]
+            temp_node = self.nodeList[temp_node_index]
+            temp_distance = math.sqrt((temp_node.x - new_node.x) ** 2 + (temp_node.y - new_node.y) ** 2)
+            temp_distance += self.get_distance_to_initial(temp_node)
+            if temp_distance < minimum_distance:
+                minimum_distance = temp_distance
+                minimum_index = temp_node_index
+        return minimum_index
+
+        '''
         new_node_parent_node = self.nodeList[new_node.parent]
         minimum_distance = math.sqrt((new_node_parent_node.x-new_node.x)**2+(new_node_parent_node.y-new_node.y)**2)
         minimum_index = -1  # -1 stands for there is no node nearer than this
@@ -110,6 +130,7 @@ class RRT(object):
                 minimum_distance = temp_distance
                 minimum_index = i
         return minimum_index
+        '''
 
     def test_choose_parent(self, new_node):
         """
@@ -124,6 +145,7 @@ class RRT(object):
     def rewire_rrt(self, new_node):
         """
         rewire the rrt path according to the rule of RRT*
+        for the rule of RRT* see https://zhuanlan.zhihu.com/p/51087819
         :param new_node: new_node
         :return: None
         """
@@ -176,8 +198,9 @@ class RRT(object):
             if not self.collision_check(new_node, self.obstacleList):
                 continue
 
-            if self.choose_parent(new_node)>-1:
-                new_node.parent = self.choose_parent(new_node)
+            test_new_node_parent_index = self.choose_parent(new_node)
+            if test_new_node_parent_index > -1:
+                new_node.parent = test_new_node_parent_index
 
             self.nodeList.append(new_node)
 
