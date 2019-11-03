@@ -1,11 +1,8 @@
 import math
-a = [1, 2, 3, 4, 5]
 
-b = [6, 7, 8, 9, 10]
+def line_collision_free(x1, y1, x2, y2, x_o, y_o, r):
 
-c = a
-print(c)
+    return
 
-c = b
-print(c)
-print(math.sqrt(145))
+print
+
