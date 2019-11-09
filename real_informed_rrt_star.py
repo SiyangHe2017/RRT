@@ -227,7 +227,8 @@ class RRT(object):
                 break
 
             if True:
-                self.draw_graph(rnd)
+                # self.draw_graph(rnd)
+                pass
 
         path = [[self.end.x, self.end.y]]
         last_index = len(self.nodeList) - 1
@@ -321,10 +322,10 @@ def main():
     print("start RRT path planning")
 
     obstacle_list = [
-        # (2, 2, 1),
-        # (8, 2, 1),
-        # (2, 8, 1),
-        # (6, 6, 1)
+        (2, 2, 1),
+        #(8, 2, 1),
+        #(2, 8, 1),
+        (6, 6, 1)
     ]
 
     # Set Initial parameters
@@ -336,7 +337,7 @@ def main():
     print(rrt.c_best)
 
     iterator = 1
-    while iterator < 50:
+    while iterator < 20:
         iterator += 1
         path = rrt.planning()
         rrt.draw_temp_static(path)

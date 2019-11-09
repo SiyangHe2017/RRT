@@ -91,17 +91,28 @@ class RRT(object):
             temp_node_index = node_parent_index
         return distance
 
+    @staticmethod
+    def node_collision_circle_free(x1, y1, x2, y2, x0, y0, r):
+        k = (y1 - y2) / (x1 - x2)
+        d0 = abs(k * x0 - y0 + y1 - k * x1) / math.sqrt(k * k + 1)
+        if d0 <= r:
+            return False
+        else:
+            return True
+
+    def node_collision_block_free(self, node_1, node_2):
+        x1 = node_1.x
+        y1 = node_1.y
+        x2 = node_2.x
+        y2 = node_2.y
+        for (x0, y0, r) in self.obstacleList:
+            if not self.node_collision_circle_free(x1, y1, x2, y2, x0, y0, r * 1.2):
+                return False
+        return True
+
     def Q_choose_parent(self, new_node):
         """
-        For QRRT*
-        :param new_node:
-        :return:
-        """
-        return
-
-    def choose_parent(self, new_node):
-        """
-        For RRT*
+        For QRRT star
         Choosing a parent for the new node which makes the new node smallest cost to the root
         :param new_node:
         :return: minimu_index: -1 if there is no more nearby node
@@ -116,7 +127,7 @@ class RRT(object):
         minimum_distance = math.sqrt(
             (new_node_parent_node.x - new_node.x) ** 2 + (new_node_parent_node.y - new_node.y) ** 2)
         minimum_distance += self.get_distance_to_initial(new_node_parent_node)
-        minimum_index = -1  # -1 stands for there is no node nearer than this
+        minimum_index = -1 
         for i in range(len(nearer_node_index_list)):
             temp_node_index = nearer_node_index_list[i]
             temp_node = self.nodeList[temp_node_index]
@@ -125,21 +136,20 @@ class RRT(object):
             if temp_distance < minimum_distance:
                 minimum_distance = temp_distance
                 minimum_index = temp_node_index
+            while(temp_node.parent is not None):
+                temp_node_index = temp_node.parent
+                temp_node = self.nodeList[temp_node_index]
+                temp_distance = math.sqrt((temp_node.x - new_node.x) ** 2 + (temp_node.y - new_node.y) ** 2)
+                temp_distance += self.get_distance_to_initial(temp_node)
+                if temp_distance < minimum_distance:
+                    if self.node_collision_block_free(new_node, temp_node):
+                        minimum_distance = temp_distance
+                        minimum_index = temp_node_index
         return minimum_index
 
-    def test_choose_parent(self, new_node):
+    def Q_rewire_rrt(self, new_node):
         """
-        This is used for testing the function choose_parent()
-        """
-        new_node_parent = self.choose_parent(new_node)
-        if new_node_parent > -1:
-            new_node_parent_node = self.nodeList[new_node_parent]
-            distance = math.sqrt((new_node_parent_node.x - new_node.x)**2 + (new_node_parent_node.y - new_node.y)**2)
-            print(distance, new_node_parent_node.x, new_node_parent_node.y, new_node.x, new_node.y)
-
-    def rewire_rrt(self, new_node):
-        """
-        rewire the rrt path according to the rule of RRT*
+        rewire the rrt path according to the rule of Q-RRT*
         :param new_node: new_node
         :return: None
         """
@@ -154,11 +164,26 @@ class RRT(object):
             nearer_node_list.remove(self.nodeList[new_node.parent])
         for i in range(len(nearer_node_list)):
             temp_node = nearer_node_list[i]
-            temp_node_distance_o = self.get_distance_to_initial(temp_node)
+            shortest_distance = self.get_distance_to_initial(temp_node)
             new_node_distance_temp_node = math.sqrt((new_node.x - temp_node.x)**2 + (new_node.y - temp_node.y)**2)
-            if temp_node_distance_o > new_node_distance_o + new_node_distance_temp_node:
-                temp_node.parent = new_node_index
+            if shortest_distance > new_node_distance_o + new_node_distance_temp_node:
+                if self.node_collision_block_free(temp_node, new_node):
+                    temp_node.parent = new_node_index
+                    shortest_distance = new_node_distance_o + new_node_distance_temp_node
+            
+            temp_new_node_index = new_node_index
+            while(self.nodeList[temp_new_node_index].parent is not None):
+                temp_new_node_index = self.nodeList[temp_new_node_index].parent
+                temp_new_node = self.nodeList[temp_new_node_index]
+                temp_new_node_distance_o = self.get_distance_to_initial(temp_new_node)
+                temp_new_node_distance_temp_node = math.sqrt((temp_new_node.x - temp_node.x)**2 + (temp_new_node.y - temp_node.y)**2)
+                if shortest_distance > temp_new_node_distance_o + temp_new_node_distance_temp_node:
+                    if self.node_collision_block_free(temp_node, temp_new_node):
+                        temp_node.parent = temp_new_node_index
+                        shortest_distance = temp_new_node_distance_o + temp_new_node_distance_temp_node
         return
+
+
 
     def planning(self):
         """
@@ -192,13 +217,16 @@ class RRT(object):
             if not self.collision_check(new_node, self.obstacleList):
                 continue
 
-            test_new_node_parent_index = self.choose_parent(new_node)
+            if not self.node_collision_block_free(new_node, nearest_node):
+                continue
+
+            test_new_node_parent_index = self.Q_choose_parent(new_node)
             if test_new_node_parent_index > -1:
                 new_node.parent = test_new_node_parent_index
 
             self.nodeList.append(new_node)
 
-            self.rewire_rrt(new_node)
+            self.Q_rewire_rrt(new_node)
 
             # check goal
             dx = new_node.x - self.end.x
@@ -209,7 +237,9 @@ class RRT(object):
                 break
 
             if True:
-                self.draw_graph(rnd)
+                # self.draw_graph(rnd)
+                pass
+
 
         path = [[self.end.x, self.end.y]]
         last_index = len(self.nodeList) - 1
@@ -319,7 +349,7 @@ def main():
     rrt.draw_temp_static(path)
 
     iterator = 1
-    while iterator < 2:
+    while iterator < 30:
         iterator += 1
         path = rrt.planning()
         rrt.draw_temp_static(path)
