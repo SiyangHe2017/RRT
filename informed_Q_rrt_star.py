@@ -41,10 +41,11 @@ class RRT(object):
         self.maxIter = 500  # what it is this?
         self.obstacleList = obstacle_list
         self.nodeList = [self.start]
+        self.c_best = 1000000000  # stands for positive infinity
 
     def random_node(self):
         """
-        Creating random nodes
+        Creating random node
         :return:
         """
         node_x = random.uniform(self.min_rand, self.max_rand)
@@ -55,11 +56,6 @@ class RRT(object):
 
     @staticmethod
     def get_nearest_list_index(node_list, rnd):
-        """
-        :param node_list:
-        :param rnd:
-        :return:
-        """
         d_list = [(node.x - rnd[0]) ** 2 + (node.y - rnd[1]) ** 2 for node in node_list]
         min_index = d_list.index(min(d_list))
         return min_index
@@ -75,20 +71,13 @@ class RRT(object):
                 a = 0  # collision
         return a
 
-    def get_distance_to_initial(self, temp_node):
-        """
-        Calculating the euclidean distance from the current node to its initial node
-        :param temp_node: current node
-        :return: distance: the distance to the origin from the current node along its father
-        """
+    @staticmethod
+    def calculate_path_distance(path):
         distance = 0
-        temp_node_index = self.nodeList.index(temp_node)
-        while self.nodeList[temp_node_index].parent is not None:
-            temp_node = self.nodeList[temp_node_index]
-            node_parent_index = temp_node.parent
-            node_parent = self.nodeList[node_parent_index]
-            distance += math.sqrt((temp_node.x - node_parent.x) ** 2 + (temp_node.y - node_parent.y) ** 2)
-            temp_node_index = node_parent_index
+        for i in range(len(path) - 1):
+            d_x = path[i][0] - path[i + 1][0]
+            d_y = path[i][1] - path[i + 1][1]
+            distance += math.sqrt(d_x * d_x + d_y * d_y)
         return distance
 
     @staticmethod
@@ -106,9 +95,25 @@ class RRT(object):
         x2 = node_2.x
         y2 = node_2.y
         for (x0, y0, r) in self.obstacleList:
-            if not self.node_collision_circle_free(x1, y1, x2, y2, x0, y0, r * 1.2):
+            if not self.node_collision_circle_free(x1, y1, x2, y2, x0, y0, r * 1.1):
                 return False
         return True
+
+    def get_distance_to_initial(self, temp_node):
+        """
+        Calculating the euclidean distance from the current node to its initial node
+        :param temp_node: current node
+        :return: distance: the distance to the origin from the current node along its father
+        """
+        distance = 0
+        temp_node_index = self.nodeList.index(temp_node)
+        while self.nodeList[temp_node_index].parent is not None:
+            temp_node = self.nodeList[temp_node_index]
+            node_parent_index = temp_node.parent
+            node_parent = self.nodeList[node_parent_index]
+            distance += math.sqrt((temp_node.x - node_parent.x) ** 2 + (temp_node.y - node_parent.y) ** 2)
+            temp_node_index = node_parent_index
+        return distance
 
     def Q_choose_parent(self, new_node):
         """
@@ -184,12 +189,27 @@ class RRT(object):
                         shortest_distance = temp_new_node_distance_o + temp_new_node_distance_temp_node
         return
 
-
+    def is_node_rejection(self, new_node):
+        """
+        For informed-RRT star
+        test if it is in the eclipse area or not
+        :param new_node:
+        :return: True if it is out of the eclipse, False if it is in the eclipse
+        """
+        d0_x = new_node.x - self.start.x
+        d0_y = new_node.y - self.start.y
+        d0 = math.sqrt(d0_x * d0_x + d0_y * d0_y)
+        d1_x = new_node.x - self.end.x
+        d1_y = new_node.y - self.end.y
+        d1 = math.sqrt(d1_x * d1_x + d1_y * d1_y)
+        if d0 + d1 > self.c_best:
+            return True
+        else:
+            return False
 
     def planning(self):
         """
         Path planning
-
         animation: flag for animation on or off
         """
 
@@ -221,6 +241,9 @@ class RRT(object):
             if not self.node_collision_block_free(new_node, nearest_node):
                 continue
 
+            if self.is_node_rejection(new_node):
+                continue
+
             test_new_node_parent_index = self.Q_choose_parent(new_node)
             if test_new_node_parent_index > -1:
                 new_node.parent = test_new_node_parent_index
@@ -240,7 +263,6 @@ class RRT(object):
             if True:
                 # self.draw_graph(rnd)
                 pass
-
 
         path = [[self.end.x, self.end.y]]
         last_index = len(self.nodeList) - 1
@@ -334,26 +356,28 @@ def main():
     print("start RRT path planning")
 
     obstacle_list = [
-        (3, 3, 1),
+        (2, 2, 1),
         (8, 2, 1),
         (2, 8, 1),
         (6, 6, 1)
-        ]
+    ]
 
     # Set Initial parameters
-    rrt = RRT(start=[0, 0], goal=[8, 9], rand_area=[-2, 10], obstacle_list=obstacle_list)
-    '''
-    for i in range(1, len(path)):
-        print(path[i])
-    '''
+    rrt = RRT(start=[0, 0], goal=[8, 9], rand_area=[-5, 15], obstacle_list=obstacle_list)
     path = rrt.planning()
     rrt.draw_temp_static(path)
 
+    rrt.c_best = rrt.calculate_path_distance(path)
+    print(rrt.c_best)
+
     iterator = 1
-    while iterator < 30:
+    while iterator < 20:
         iterator += 1
         path = rrt.planning()
         rrt.draw_temp_static(path)
+        if rrt.c_best > rrt.calculate_path_distance(path):
+            rrt.c_best = rrt.calculate_path_distance(path)
+        print(rrt.c_best)
 
     # Draw final path
     if show_animation:
